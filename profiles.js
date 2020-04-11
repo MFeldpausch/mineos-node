@@ -14,7 +14,8 @@ function profile_template(obj = {}) {
     downloaded: false,
     filename: null, // minecraft_server.1.8.8.jar
     version: null, // 1.8.8,
-  ...obj}
+    ...obj,
+  };
 }
 
 exports.profile_manifests = {
@@ -98,67 +99,52 @@ exports.profile_manifests = {
   },
   paperspigot: {
     name: "PaperSpigot Releases",
-    request_args: { // I don't know how much we need this.  We don't use it at all.
+    request_args: {
+      // I don't know how much we need this.  We don't use it at all.
       url: "https://papermc.io/api/v1/paper/",
       json: true,
     },
     handler: function (profile_dir, body, callback) {
       var request = require("request");
-      
-      // Final return array of templates
-      let profiles = []
 
-      try {
-        // Load all Paper versions
-        let versions = await new Promise((res, rej) => {
-          request(`https://papermc.io/api/v1/paper/`, (err, response, body) => {
-            if (err) {
-              rej(err)
-            } else {
-              let {versions} = JSON.parse(body)
-              res(versions)
-            }
-          })
-        })
+      let promise_array = [];
 
-        for (var version of versions) {
-          // Get latest build ID for this version
-          let buildID = await new Promise((res, rej) => {
+      for (var version of body.versions) {
+        
+        // Get latest build ID for this version
+        promise_array.push(
+          new Promise((res, rej) => {
             request(`https://papermc.io/api/v1/paper/${version}/latest`, (err, response, body) => {
               if (err) {
-                rej(err)
+                rej(err);
               } else {
-                let {build} = JSON.parse(body)
-                res(build)
+                let { build } = JSON.parse(body);
+                res(build);
               }
-            })
+            });
+          }).then((build) => {
+            return new profile_template({
+              id: version,
+              build: build,
+              time: new Date().getTime(),
+              releaseTime: new Date().getTime(),
+              group: "paperspigot",
+              webui_desc: `Paperclip build ${build} (mc version: ${version})`,
+              weight: 0,
+              filename: `paper-${build}.jar`,
+              downloaded: fs.existsSync(path.join(profile_dir, version, `paper-${build}.jar`)),
+              version: version,
+              release_version: version,
+              url: `https://papermc.io/api/v1/paper/${version}/latest/download`,
+              type: "release",
+            });
           })
+        );
+      }
 
-          // Create the profile
-          var profile = new profile_template({
-            id: version,
-            build: buildID,
-            time: new Date().getTime(),
-            releaseTime: new Date().getTime(),
-            group: 'paperspigot',
-            webui_desc: `Paperclip build ${buildID} (mc version: ${version})`,
-            weight: 0,
-            filename: `paper-${buildID}.jar`,
-            downloaded: fs.existsSync(path.join(profile_dir, version, `paper-${buildID}.jar`)),
-            version: version,
-            release_version: version,
-            url: `https://papermc.io/api/v1/paper/${version}/latest/download`,
-            type: 'release'
-          });
-
-          // Add it to the final array
-          profiles.push(profile);
-        }
-      } catch (e) {}
-
-      // Send back to MineOS the array of Paper templates
-      callback(null, profiles);    // <- FIX
-      
+      Promise.all(promise_array).then((profiles) => {
+        callback(null, profiles);
+      });
     }, //end handler
     postdownload: function (profile_dir, dest_filepath, callback) {
       callback();
