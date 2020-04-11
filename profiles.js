@@ -105,12 +105,12 @@ exports.profile_manifests = {
       json: true,
     },
     handler: function (profile_dir, body, callback) {
-      var request = require("request");
+      const request = require("request");
 
       let promise_array = [];
 
-      for (var version of body.versions) {
-        
+      for (let version of body.versions) {
+
         // Get latest build ID for this version
         promise_array.push(
           new Promise((res, rej) => {
