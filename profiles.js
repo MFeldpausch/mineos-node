@@ -109,7 +109,6 @@ exports.profile_manifests = {
       let promise_array = [];
 
       for (let version of body.versions) {
-
         // Get latest build ID for this version
         promise_array.push(
           new Promise((res, rej) => {
@@ -125,8 +124,6 @@ exports.profile_manifests = {
             return new profile_template({
               id: version,
               build: build,
-              time: new Date().getTime(),
-              releaseTime: new Date().getTime(),
               group: "paperspigot",
               webui_desc: `Paperclip build ${build} (mc version: ${version})`,
               weight: 0,
@@ -142,8 +139,20 @@ exports.profile_manifests = {
       }
 
       Promise.all(promise_array).then((profiles) => {
-        console.log(profiles)
-        callback(null, profiles);
+        // Order all of the releases chronologically. Paper does not provide build dates, so we must do this manually by release version.
+        let new_profiles = [];
+        let l = profiles.length;
+
+        let startDate = new Date().setDate(new Date().getDate() - length);
+
+        profiles.reverse();
+
+        profiles.forEach((p, i) => {
+          let newDate = new Date().setDate(startDate.getDate() + i);
+          new_profiles.push({ ...p, time: newDate.getTime(), releaseTime: newDate.getTime() });
+        });
+
+        callback(null, new_profiles);
       });
     }, //end handler
     postdownload: function (profile_dir, dest_filepath, callback) {
