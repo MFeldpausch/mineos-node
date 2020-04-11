@@ -141,9 +141,8 @@ exports.profile_manifests = {
       Promise.all(promise_array).then((profiles) => {
         // Order all of the releases chronologically. Paper does not provide build dates, so we must do this manually by release version.
         let new_profiles = [];
-        let l = profiles.length;
 
-        let startDate = new Date().setDate(new Date().getDate() - length);
+        let startDate = new Date().setDate(new Date().getDate() - profiles.length);
 
         profiles.reverse();
 
