@@ -147,7 +147,7 @@ exports.profile_manifests = {
         profiles.reverse();
 
         profiles.forEach((p, i) => {
-          let newDate = new Date().setDate(startDate.getDate() + i);
+          let newDate = new Date().setDate(new Date(startDate).getDate() + i);
           new_profiles.push({ ...p, time: newDate.getTime(), releaseTime: newDate.getTime() });
         });
 
