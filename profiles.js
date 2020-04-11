@@ -98,40 +98,31 @@ exports.profile_manifests = {
   },
   paperspigot: {
     name: "PaperSpigot Releases",
-    request_args: {
+    request_args: { // I don't know how much we need this.  We don't use it at all.
       url: "https://papermc.io/api/v1/paper/",
       json: true,
     },
     handler: function (profile_dir, body, callback) {
       var request = require("request");
-
-      let p = []
+      
+      // Final return array of templates
+      let profiles = []
 
       try {
-        // BEGIN PARSING LOGIC
-        // So body.verisons needs to be grabbed
-
-        // I think body is from line 105... it's passed to the function from the url in request_args. Maybe we don't need to get it again?
-        
-        // We need to get an array of vversions that paper supports.  
-
+        // Load all Paper versions
         let versions = await new Promise((res, rej) => {
           request(`https://papermc.io/api/v1/paper/`, (err, response, body) => {
             if (err) {
               rej(err)
             } else {
-              let {versions} = JSON.parse(body) //should do it
-              // body comes back as a string... we need to convert that string of JSON to the object it's supposed to be first. the fancy curly brances at the beginning grabs body.versions once it's all parsed
-              // modern js is art :)
+              let {versions} = JSON.parse(body)
               res(versions)
             }
           })
         })
 
         for (var version of versions) {
-          // i fixed it without making it a class...
-          
-
+          // Get latest build ID for this version
           let buildID = await new Promise((res, rej) => {
             request(`https://papermc.io/api/v1/paper/${version}/latest`, (err, response, body) => {
               if (err) {
@@ -142,16 +133,15 @@ exports.profile_manifests = {
               }
             })
           })
-          // But will you need to update all of the other places they do this?
-          // So then it does the same thing if you don't pass params, like all of the other functions do? - yes, same thing
-          // no, i patched it so that it just takes the first param and adds it to the return object, but not replaces it. 
-          var item = new profile_template({
+
+          // Create the profile
+          var profile = new profile_template({
             id: version,
             build: buildID,
             time: new Date().getTime(),
             releaseTime: new Date().getTime(),
             group: 'paperspigot',
-            webui_desc: "PaperSpigot Release",
+            webui_desc: `Paperclip build ${buildID} (mc version: ${version})`,
             weight: 0,
             filename: `paper-${buildID}.jar`,
             downloaded: fs.existsSync(path.join(profile_dir, version, `paper-${buildID}.jar`)),
@@ -160,46 +150,15 @@ exports.profile_manifests = {
             url: `https://papermc.io/api/v1/paper/${version}/latest/download`,
             type: 'release'
           });
-          item["id"] = version //ref_obj["id"];
-          item["build"] = buildID; // What goes here?
-          item["time"] = new Date().getTime()
-          item["releaseTime"] = new Date().getTime()
-          item["group"] = "paperspigot";
-          item["webui_desc"] = "PaperSpigot Release";
-          item["weight"] = 0;
-          item["filename"] = "paper-{0}.jar".format(buildID); // Also, Don't use format... :) Yay, Art!
-          item["downloaded"] = fs.existsSync(path.join(profile_dir, item.id, item.filename));
-          item["version"] = version
-          item["release_version"] = version
-          item["url"] = "https://papermc.io/api/v1/paper/{0}/latest/download".format(item.version);
-          item["type"] = "release"
-          
-          // I think this is useless.  Type is not used in Paper, just vanilla.
-          // Yeah,
-          switch (ref_obj["type"]) {
-            case "release":
-              item["type"] = ref_obj["type"];
-              q.push({ id: item["id"], url: ref_obj.url });
-              p.push(item);
-              break;
-            case "snapshot":
-              item["type"] = ref_obj["type"];
-              q.push({ id: item["id"], url: ref_obj.url });
-              p.push(item);
-              break;
-            default:
-              item["type"] = "old_version"; //old_alpha, old_beta
-              //q.push({ id: item['id'], url: ref_obj.url });
-              break;
-          }
-          //p.push(item);
+
+          // Add it to the final array
+          profiles.push(profile);
         }
       } catch (e) {}
 
-      q.resume();
-      q.drain = function () {
-        callback(null, p);
-      };
+      // Send back to MineOS the array of Paper templates
+      callback(null, profiles);    // <- FIX
+      
     }, //end handler
     postdownload: function (profile_dir, dest_filepath, callback) {
       callback();
@@ -325,7 +284,7 @@ exports.profile_manifests = {
       } catch (e) {}
 
       callback(null, p);
-    }, //end handler
+    },
     postdownload: function (profile_dir, dest_filepath, callback) {
       callback();
     },
@@ -368,6 +327,9 @@ exports.profile_manifests = {
       callback(null, p);
     }, //end handler
   },
+
+  // This probably is not needed anymore, but we should leave for now.
+  /*
   paperspigot: {
     name: "PaperSpigot",
     handler: function (profile_dir, callback) {
@@ -451,6 +413,7 @@ exports.profile_manifests = {
       callback(null, p);
     }, //end handler
   },
+  */
   spigot: {
     name: "Spigot",
     handler: function (profile_dir, callback) {
