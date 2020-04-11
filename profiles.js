@@ -100,7 +100,6 @@ exports.profile_manifests = {
   paperspigot: {
     name: "PaperSpigot Releases",
     request_args: {
-      // I don't know how much we need this.  We don't use it at all.
       url: "https://papermc.io/api/v1/paper/",
       json: true,
     },
@@ -143,6 +142,7 @@ exports.profile_manifests = {
       }
 
       Promise.all(promise_array).then((profiles) => {
+        console.log(profiles)
         callback(null, profiles);
       });
     }, //end handler
