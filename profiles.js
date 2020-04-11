@@ -120,39 +120,47 @@ exports.profile_manifests = {
                 res(build);
               }
             });
-          }).then((build) => {
-            return new profile_template({
-              id: version,
-              build: build,
-              group: "paperspigot",
-              webui_desc: `Paperclip build ${build} (mc version: ${version})`,
-              weight: 0,
-              filename: `paper-${build}.jar`,
-              downloaded: fs.existsSync(path.join(profile_dir, version, `paper-${build}.jar`)),
-              version: version,
-              release_version: version,
-              url: `https://papermc.io/api/v1/paper/${version}/latest/download`,
-              type: "release",
-            });
           })
+            .then((build) => {
+              return new profile_template({
+                id: version,
+                build: build,
+                group: "paperspigot",
+                webui_desc: `Paperclip build ${build} (mc version: ${version})`,
+                weight: 0,
+                filename: `paper-${build}.jar`,
+                downloaded: fs.existsSync(path.join(profile_dir, version, `paper-${build}.jar`)),
+                version: version,
+                release_version: version,
+                url: `https://papermc.io/api/v1/paper/${version}/latest/download`,
+                type: "release",
+              });
+            })
+            .catch((e) => {
+              console.error(e);
+            })
         );
       }
 
-      Promise.all(promise_array).then((profiles) => {
-        // Order all of the releases chronologically. Paper does not provide build dates, so we must do this manually by release version.
-        let new_profiles = [];
+      Promise.all(promise_array)
+        .then((profiles) => {
+          // Order all of the releases chronologically. Paper does not provide build dates, so we must do this manually by release version.
+          let new_profiles = [];
 
-        let startDate = new Date().setDate(new Date().getDate() - profiles.length);
+          let startDate = new Date().setDate(new Date().getDate() - profiles.length);
 
-        profiles.reverse();
+          profiles.reverse();
 
-        profiles.forEach((p, i) => {
-          let newDate = new Date().setDate(new Date(startDate).getDate() + i);
-          new_profiles.push({ ...p, time: new Date(newDate).getTime(), releaseTime: new Date(newDate).getTime() });
+          profiles.forEach((p, i) => {
+            let newDate = new Date().setDate(new Date(startDate).getDate() + i);
+            new_profiles.push({ ...p, time: new Date(newDate).getTime(), releaseTime: new Date(newDate).getTime() });
+          });
+
+          callback(null, new_profiles);
+        })
+        .catch((e) => {
+          console.error(e);
         });
-
-        callback(null, new_profiles);
-      });
     }, //end handler
     postdownload: function (profile_dir, dest_filepath, callback) {
       callback();
